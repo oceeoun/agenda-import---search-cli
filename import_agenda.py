@@ -32,6 +32,7 @@ def main():
         agenda_items, speakers, agenda_item_to_speaker = open_tables()
         book = xlrd.open_workbook(agenda_path)
         sh = book.sheet_by_index(0)
+        speaker_cache = {}
 
         for i in range(DATA_START_ROW, sh.nrows):
             # fill agenda_items table
@@ -47,6 +48,26 @@ def main():
                 "location": row[5],
                 "description": row[6]
             })
+
+            # fill speakers table and agenda_item_to_speaker table
+            for speaker in row[7].split(";"):
+                name = speaker.strip()
+                if not name:
+                    continue
+                    
+                if name in speaker_cache:
+                    speaker_id = speaker_cache[name]
+                else:
+                    speaker_id = speakers.insert({"speaker_name": name})
+                    speaker_cache[name] = speaker_id
+                
+                agenda_item_to_speaker.insert({
+                    "agenda_item_id": str(agenda_item_id),
+                    "speaker_id": str(speaker_id)
+                })
+                
+        print(f"Imported {len(agenda_items.select())} agenda items ({len(speakers.select())} total speakers) into interview_test.db")
+        return 0
     
     finally:
         if agenda_items and speakers and agenda_item_to_speaker:
