@@ -33,21 +33,33 @@ def main():
         book = xlrd.open_workbook(agenda_path)
         sh = book.sheet_by_index(0)
         speaker_cache = {}
+        curr_parent_id = None
 
         for i in range(DATA_START_ROW, sh.nrows):
             # fill agenda_items table
             row = [str(x).replace("'", "''").strip() for x in sh.row_values(i)]
+
+            # record parent_id if applicable
+            if row[3] == "Sub":
+                parent_id = curr_parent_id
+            else:
+                parent_id = ""
+
             agenda_item_id = agenda_items.insert({
                 "row_index": i,
                 "date": row[0],
                 "time_start": row[1],
                 "time_end": row[2],
                 "session_type": row[3],
-                "parent_id": "",
+                "parent_id": parent_id,
                 "title": row[4],
                 "location": row[5],
                 "description": row[6]
             })
+
+            # update parent_id
+            if row[3] != "Sub":
+                curr_parent_id = agenda_item_id
 
             # fill speakers table and agenda_item_to_speaker table
             for speaker in row[7].split(";"):
