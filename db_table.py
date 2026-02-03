@@ -1,3 +1,8 @@
+"""
+Note: select() applies case-insensitive matching for WHERE equality checks
+using SQLite's 'COLLATE CASE' (e.g. 'lounge' matches 'Lounge').
+"""
+
 # sqlite db communication
 import sqlite3
 

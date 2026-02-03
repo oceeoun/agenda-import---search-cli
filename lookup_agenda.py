@@ -3,7 +3,12 @@
 """
 II. Lookup Agenda
 
-
+Usage: ./lookup_agenda.py column value
+Finds and prints sessions/subsessions matching the lookup condition (case-insensitive; skips duplicates).
+- column must be one of: date, time_start, time_end, title, location, description, speaker
+- non-speaker lookup mtaches by exact equality of the value
+- speaker lookup matches a single speaker_name to agenda items containing that speaker
+- if a session matches, all of its subsessions are also printed
 """
 
 import sys, sqlite3
