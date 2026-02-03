@@ -36,6 +36,7 @@ def main():
         except Exception as e:
             print(f"Error: failed to open database ({e}).")
             return 2
+        
         try:
             value = argv[1]
             matches_session_ids = set()
