@@ -40,7 +40,7 @@ def main():
             book = xlrd.open_workbook(agenda_path)
             sh = book.sheet_by_index(0)
         except Exception as e:
-            print(f"Error: failed to open '{agenda_path}' ({e})")
+            print(f"Error: failed to open '{agenda_path}' ({e}).")
             return 2
 
         # trackers
