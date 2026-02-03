@@ -33,14 +33,14 @@ def main():
             return 2
         
         value = argv[1]
-        matches_session_ids = list()
-        matches_sub_ids = list()
+        matches_session_ids = set()
+        matches_sub_ids = set()
         
         if column != "speaker":
             for session in agenda_items.select(["id"], { column:value }):
-                matches_session_ids.append(session["id"])
+                matches_session_ids.add(session["id"])
                 for subsession in agenda_items.select(["id"], { "parent_id":session["id"]}):
-                    matches_session_ids.append(subsession["id"])
+                    matches_session_ids.add(subsession["id"])
             print(matches_session_ids)
 
         else:
@@ -48,12 +48,13 @@ def main():
         
         # formatted output 
         print("-" * 20)
-        for id in matches_session_ids:
-            row = agenda_items.select(["date", "time_start", "time_end", "title", "location", "description", "session_type"], { "id":id })[0]
+        ids = sorted(matches_session_ids)
+        for i in range(len(ids)):
+            row = agenda_items.select(["date", "time_start", "time_end", "title", "location", "description", "session_type"], { "id":ids[i] })[0]
             date, time_start, time_end, title, location, description, session_type = row["date"], row["time_start"], row["time_end"], row["title"], row["location"], row["description"], row["session_type"]
             #speaker_list = "IMPLEMENT DISSSS"
             
-            print(f"{date} | {time_start} - {time_end} | {session_type}")
+            print(f"Match #{i+1} | {date} | {time_start} - {time_end} | {session_type}")
             print(f"Title: {title}")
             print(f"Location: {location}")
             print(f"Description: {description}")
