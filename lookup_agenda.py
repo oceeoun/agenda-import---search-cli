@@ -37,21 +37,25 @@ def main():
         
         if column != "speaker":
             # match non-speaker items, case-insensitive and skips duplicates
-            for session in agenda_items.select(["id"], { column:value }):
-                matches_session_ids.add(session["id"])
-                # also store matching session's subsessions
-                for subsession in agenda_items.select(["id"], { "parent_id":session["id"] }):
-                    matches_session_ids.add(subsession["id"])
+            db = agenda_items
+            id = "id"
         else:
             # match speaker items, case-insensitive and skips duplicates
             speaker_id = speakers.select(["id"], { "speaker_name":value })
             if not speaker_id:
                 print(f"No matches found for speaker '{value}'.")
                 return 0
-            for session in agenda_item_to_speaker.select(["agenda_item_id"], { "speaker_id":speaker_id[0]["id"] }):
-                matches_session_ids.add(session["agenda_item_id"])
-                for subsession in agenda_items.select(["id"], { "parent_id":session["agenda_item_id"] }):
-                    matches_session_ids.add(subsession["id"])
+            
+            db = agenda_item_to_speaker
+            id = "agenda_item_id"
+            column = "speaker_id"
+            value = speaker_id[0]["id"]
+        
+        for session in db.select([id], { column:value }):
+            matches_session_ids.add(session[id])
+            # also store matching session's subsessions
+            for subsession in agenda_items.select(["id"], { "parent_id":session[id] }):
+                matches_session_ids.add(subsession["id"])
         
         # formatted output 
         print("-" * 20)
