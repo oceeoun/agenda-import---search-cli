@@ -79,9 +79,9 @@ class db_table:
         # build query string
         columns_query_string = ", ".join(columns)
         query                = "SELECT %s FROM %s" % (columns_query_string, self.name)
-        # build where query string
+        # build where query string (ADDED: case-insensitive)
         if where:
-            where_query_string = [ "%s = '%s'" % (k,v) for k,v in where.items() ]
+            where_query_string = [ "%s = '%s' COLLATE NOCASE" % (k,v) for k,v in where.items() ]
             query             += " WHERE " + ' AND '.join(where_query_string)
         
         result = []
