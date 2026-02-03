@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 
-### I. Import Agenda
+"""
+I. Import Agenda (into interview_test.db)
 
-## Input: agenda.xls
-## Output: 
-#   Imported xxx sessions, xxx subsessions, xxx speakers, xxx mappings into interview_test.db
-#   Error: file not found OR missing args/bad file OR parse fail OR ...
+Usage: ./import_agenda.py agenda.xls
+Reads sheet 0 starting at Excel row 16.
+Inserts rows into agenda_items, speakers, and agenda_item_to_speaker (skipping duplicates).
+Prints a summary and exits zero on success, non-zero on error.
+"""
 
 import sys, os, xlrd, sqlite3
-from db import open_tables, close_tables
+from db import open_tables, close_tables, count_rows
 from db_table import db_table
 
-HEADER_ROW = 14 # (for now)
-DATA_START_ROW = 15 # (for now)
+HEADER_ROW = 14
+DATA_START_ROW = 15
 
 def main():
     argv = sys.argv[1:]
@@ -33,12 +35,18 @@ def main():
     
     try:
         agenda_items, speakers, agenda_item_to_speaker = open_tables()
-        book = xlrd.open_workbook(agenda_path)
-        sh = book.sheet_by_index(0)
 
-        # reGAGAGAWGRRAGEGVEADGVWAGRFWAGAW
+        try:
+            book = xlrd.open_workbook(agenda_path)
+            sh = book.sheet_by_index(0)
+        except Exception as e:
+            print(f"Error: failed to open '{agenda_path}' ({e})")
+            return 2
+
+        # trackers
         speaker_cache = {}
         curr_parent_id = None
+        duplicate_agenda_items = duplicate_speakers = 0
 
         for i in range(DATA_START_ROW, sh.nrows):
             # fill agenda_items table
@@ -68,28 +76,47 @@ def main():
                 imported_items += 1
             except sqlite3.IntegrityError as e:
                 if "UNIQUE constraint failed" in str(e):
-                    print(f"Duplicate: skipped row {i+1} in {agenda_path}")
-                    continue
+                    duplicate_agenda_items += 1
+                    continue # (for now) skip mapping speakers
                 raise
             
             # fill speakers table and agenda_item_to_speaker table
-            for speaker in row[7].split(";"):
-                name = speaker.strip()
+            s = [name.strip() for name in row[7].split(";")]
+            for name in s:
                 if not name:
                     continue
                     
-                if name in speaker_cache:
-                    speaker_id = speaker_cache[name]
-                else:
-                    speaker_id = speakers.insert({"speaker_name": name})
-                    speaker_cache[name] = speaker_id
-                
-                agenda_item_to_speaker.insert({
-                    "agenda_item_id": str(agenda_item_id),
-                    "speaker_id": str(speaker_id)
-                })
+                # skip duplicates in speakers
+                if name not in speaker_cache:
+                    try:
+                        speaker_id = speakers.insert({"speaker_name": name})
+                        speaker_cache[name] = speaker_id
+                        imported_speakers += 1
+                    except sqlite3.IntegrityError as e:
+                        if "UNIQUE constraint failed" in str(e):
+                            duplicate_speakers += 1
+                            speaker_cache[name] = speakers.select(["id"], { "speaker_name": name })[0]["id"]
+                        else:
+                            raise
 
-        print(f"Imported {len(agenda_items.select())} agenda items ({len(speakers.select())} total speakers) into interview_test.db")
+                speaker_id = speaker_cache[name]
+                
+                # skip duplicates in agenda_item_to_speaker mappings
+                try:
+                    agenda_item_to_speaker.insert({
+                        "agenda_item_id": agenda_item_id,
+                        "speaker_id": speaker_id
+                    })
+                except sqlite3.IntegrityError as e:
+                    if "UNIQUE constraint failed" in str(e):
+                        continue
+                    raise
+
+        # summary output
+        total_items = count_rows(agenda_items)
+        total_speakers = count_rows(speakers)
+        print(f"Imported {imported_items} new items and skipped {duplicate_agenda_items} duplicates ({total_items} total).")
+        print(f"Imported {imported_speakers} new speakers and skipped {duplicate_speakers} duplicates ({total_speakers} total).")
         return 0
     
     finally:
@@ -97,4 +124,4 @@ def main():
             close_tables(agenda_items, speakers, agenda_item_to_speaker)
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
