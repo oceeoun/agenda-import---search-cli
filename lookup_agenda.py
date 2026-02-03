@@ -34,17 +34,24 @@ def main():
         
         value = argv[1]
         matches_session_ids = set()
-        matches_sub_ids = set()
         
         if column != "speaker":
+            # match non-speaker items, case-insensitive and skips duplicates
             for session in agenda_items.select(["id"], { column:value }):
                 matches_session_ids.add(session["id"])
-                for subsession in agenda_items.select(["id"], { "parent_id":session["id"]}):
+                # also store matching session's subsessions
+                for subsession in agenda_items.select(["id"], { "parent_id":session["id"] }):
                     matches_session_ids.add(subsession["id"])
-            print(matches_session_ids)
-
         else:
-            speaker_id = None
+            # match speaker items, case-insensitive and skips duplicates
+            speaker_id = speakers.select(["id"], { "speaker_name":value })
+            if not speaker_id:
+                print(f"No matches found for speaker '{value}'.")
+                return 0
+            for session in agenda_item_to_speaker.select(["agenda_item_id"], { "speaker_id":speaker_id[0]["id"] }):
+                matches_session_ids.add(session["agenda_item_id"])
+                for subsession in agenda_items.select(["id"], { "parent_id":session["agenda_item_id"] }):
+                    matches_session_ids.add(subsession["id"])
         
         # formatted output 
         print("-" * 20)
@@ -65,27 +72,6 @@ def main():
     finally:
         if agenda_items and speakers and agenda_item_to_speaker:
             close_tables(agenda_items, speakers, agenda_item_to_speaker)
-
-    # non-speakers
-    # search in lowercase and store matching session ids (agenda_items)
-    # search in lowercase and store matching subsessions ids (agenda_items)
-    # search + store subsession ids of matching session ids (agenda_items["parent_id"])
-    # store all stored ids into a set (deduplicate)
-
-    # speakers
-    # search in lowercase and store matching session ids (agenda_item_to_speaker)
-    # search + store subsession ids of matching session ids (agenda_items["parent_id"])
-    # store all stored ids into a set (deduplicate)
-
-    # result
-    # store each id's info (row) into a list -> return that list!
-
-    # --- Please note: ---
-    # * Your program should look for both sessions and subsessions
-    # * For all matched session, you should return all its corresponding subsessions
-    # * We do not expect any specific output format as long as the results are distinguishable and all the information about that session is correct.
-    # * We are looking for an exact match for date, time_start, time_end, title, location and description.
-    # * For speaker, we will only pass one name at a time. We will expect all sessions where we can find this speaker, even though he may not be the only speaker.
     
 if __name__ == "__main__":
     sys.exit(main())
