@@ -50,7 +50,7 @@ def main():
 
         for i in range(DATA_START_ROW, sh.nrows):
             # fill agenda_items table
-            row = [str(x).replace("'","''").strip() for x in sh.row_values(i)]
+            row = [str(x).replace("'","''") for x in sh.row_values(i)]
 
             # record parent_id if applicable
             session_type = row[3].strip()
